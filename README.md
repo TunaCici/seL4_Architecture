@@ -49,7 +49,7 @@ In that traditional sense, seL4 only has 11 system calls that you can invoke wit
 
 The rest of the system calls are variations of the three above (e.g., `seL4_ReplyRecv` = `seL4_Send` + `seL4_Recv`). However, for optimization reasons, the variations are also implemented as system calls with their unique syscall numbers.
 
-The `seL4_Yield` system call here is a unique one because it doesn’t invoke an object (explained later) and isn’t a variation of `seL4_Send` or `seL4_Recv`. See [this mailing list](https://sel4.com/hyperkitty/list/devel@sel4.systems/message/KEJXVPMZBE2X27FGD3INUGH5PPVCHBP4/) for more info on it.
+The `seL4_Yield` system call here is a unique one because it doesn’t invoke an object (explained later) and isn’t a variation of `seL4_Send` or `seL4_Recv`. See [this mailing list](https://lists.sel4.systems/hyperkitty/list/devel@sel4.systems/message/KEJXVPMZBE2X27FGD3INUGH5PPVCHBP4/) for more info on it.
 
 ## Kernel Objects
 
@@ -71,20 +71,21 @@ The kernel’s interface to these objects (via system calls `seL4_Send` and `seL
 
 To protect the kernel objects, seL4 uses capabilities and the system’s MMU. The kernel marks each object’s memory region as ‘protected’ on the MMU for hardware protection & isolation, while capabilities are used for access control inside seL4.
 
-Capabilities and other kernel object will be explored in the upcoming writings.
+Capabilities and the types of kernel objects they reference will be explored in the upcoming writings.
 
 ## Object Methods
 
 !["seL4 Object Invocations"](./Media/Object_Invocation.PNG)
 seL4 Object Methods (a.k.a. Invocations)
 
-Kernel abstractions (services) are provided by invocations to kernel objects. This mechanism (or interface) is simply called object methods.
+Kernel abstractions (services) are provided via invocations to kernel objects. This mechanism (or interface) is simply called object methods.
 
-The kernel object methods, handled inside seL4, defines what you can do with a kernel object. With them, capabilities are used for secure access control.
+The object methods, handled inside seL4, defines what you can do with a certain type of kernel object. Alongside them, capabilities are used for secure access control and object referencing.
 
-Each object method is actually either `seL4_Send` or `seL4_Recv` on a certain kernel object. When you call the `seL4_TCB_Set_Priority` object method on a TCB kernel object, you’re actually calling s`eL4_Send` and `seL4_Recv` on it with a specific message (`MsgInfo_t`).
+Each object method is actually either `seL4_Send` or `seL4_Recv` on a kernel object. For example, when you call the `seL4_TCB_Set_Priority` object method on a TCB type kernel object, you’re actually calling `seL4_Send` and `seL4_Recv` on it with a specific message (`MsgInfo_t`). In normal use, however, libsel4 abstracts this detail from you.
 
 In seL4, object methods are implemented differently from system calls. They don’t have unique syscall numbers. Instead, there’s a decoder that uses its own numbering system similar to syscalls to determine which object method to invoke on which kernel object.
+Take a look at [object-api.xml](https://github.com/seL4/seL4/blob/master/libsel4/include/interfaces/object-api.xml) to see all of the object methods. Try to compare them to [syscall.xml](https://github.com/seL4/seL4/blob/master/libsel4/include/api/syscall.xml).
 
 !["Syscall vs. Object Methods](./Media/Syscall_Object_Method.PNG)
 Relationship Between System Calls And Object Methods
