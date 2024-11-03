@@ -59,15 +59,15 @@ seL4 Kernel Objects
 Unlike mainstream kernels, the interface to seL4’s abstractions (services) are not through system calls, but by invocations to kernel objects. This is a crucial design & implementation difference.
 
 The seL4's interface to these objects (via system calls `seL4_Send` and `seL4_Recv`) forms the kernel’s interface itself. Kernel abstractions (services) are created, manipulated, and interfaced using the following kernel objects:
-- CNodes
-- Thread Control Blocks
-- Endpoints
-- Reply Objects
-- Notification Objects
-- Virtual Address Space Objects
-- Interrupt Objects
-- Untyped Memory
-- Architecture-Specific Objects
+- **CNodes**
+- **Thread Control Blocks**
+- **Endpoints**
+- **Reply Objects**
+- **Notification Objects**
+- **Virtual Address Space Objects**
+- **Interrupt Objects**
+- **Untyped Memory**
+- **Architecture-Specific Objects**
 
 To protect the kernel objects, seL4 uses capabilities and the system’s MMU. The kernel marks each object’s memory region as ‘protected’ on the MMU for hardware protection & isolation, while capabilities are used for access control inside seL4.
 
@@ -83,23 +83,24 @@ Kernel abstractions (services) are provided via invocations to kernel objects. T
 The object methods, handled by seL4, define what you can do with a certain type of kernel object. Each object method is accompanied by capabilities. They are used for object referencing and secure access control. The access rights associated with a capability determine the object methods that can be invoked. Again, this will be explored later.
 
 Below are some example object methods. Refer to [the offical seL4 API documentation](https://docs.sel4.systems/projects/sel4/api-doc.html) to see them all.
-- CNode (`seL4_CNode`)
+- **CNode**
   - `seL4_CNode_Copy`
-  - `seL4_CNode_Delete`:
-- Thread Control Block (`seL4_TCBObject`)
+  - `seL4_CNode_Delete`
+- **Thread Control Block**
   - `seL4_TCB_ReadRegisters`
   - `seL4_TCB_WriteRegisters`
   - `seL4_TCB_Resume`
-- Untyped `seL4_Untyped`
+- **Untyped**
   - `seL4_Untyped_Retype`
 
-Each object method is actually either `seL4_Send` or `seL4_Recv` on a kernel object. For example, when you call the `seL4_TCB_Set_Priority` object method on a TCB type kernel object, you’re actually calling `seL4_Send` and `seL4_Recv` on it with a specific message (`MsgInfo_t`). In normal use, however, libsel4 abstracts this detail from you.
+Each object method is actually either `seL4_Send` or `seL4_Recv` on a kernel object. For example, when you call the `seL4_TCB_Set_Priority` object method on a object method on a Thread Control Block object, you’re actually calling `seL4_Send` and `seL4_Recv` with a specific message (`MsgInfo_t`). In normal use, however, libsel4 abstracts this detail from you.
+
+!["Syscall vs. Object Methods](./Media/Syscall_Object_Method.PNG)
+Relationship Between System Calls And Object Methods
 
 In seL4, object methods are implemented differently from system calls. They don’t have unique syscall numbers. Instead, there’s a decoder that uses its own numbering system similar to syscalls to determine which object method to invoke on which kernel object.
 Take a look at [object-api.xml](https://github.com/seL4/seL4/blob/master/libsel4/include/interfaces/object-api.xml) to see all of the object methods. Try to compare them to [syscall.xml](https://github.com/seL4/seL4/blob/master/libsel4/include/api/syscall.xml).
 
-!["Syscall vs. Object Methods](./Media/Syscall_Object_Method.PNG)
-Relationship Between System Calls And Object Methods
 
 ## Kernel Memory Allocation
 
