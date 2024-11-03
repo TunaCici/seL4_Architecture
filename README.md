@@ -11,14 +11,14 @@ Privilege Levels
 
 One of the most popular kernel designs out there is monolithic kernels, where high-performance software (e.g., drivers) resides in the kernel space. However, this brings many [safety and security risks](https://www.forbes.com/sites/kateoflahertyuk/2024/07/19/crowdstrike-windows-outage-what-happened-and-what-to-do-next/). If the software inside the kernel space fails, the entire system goes with it. One solution would be to move as much software away from the kernel as possible.
 
-Microkernels, minimizes the software in the kernel space by only including essential software like the [scheduler](https://en.wikipedia.org/wiki/Scheduling_(computing)), [IPC](https://en.wikipedia.org/wiki/Inter-process_communication) and [interrupt handling](https://en.wikipedia.org/wiki/Interrupt_handler). This enhances system safety as there is less software that could fail. It also makes verification and validation easier as the code size is smaller. However, performance and system latency might suffer greatly if the microkernel is not designed carefully.
+Microkernels, minimizes the software in the kernel space by only including the essentials like the [scheduler](https://en.wikipedia.org/wiki/Scheduling_(computing)), [IPC](https://en.wikipedia.org/wiki/Inter-process_communication) and [interrupt handling](https://en.wikipedia.org/wiki/Interrupt_handler). This enhances system safety as there is less software that could fail. It also makes verification and validation easier as the code size is smaller. However, performance and system latency might suffer greatly if the microkernel is not designed carefully.
 
-!["Monolithic vs. Micro Kernel](./Media/Monolithic_Micro.PNG)
+!["Monolithic vs. Micro Kernel"](./Media/Monolithic_Micro.PNG)
 Comparing Kernel Designs: Monolithic and Micro
 
 [seL4](https://beta.sel4.systems) is a fast, secure and formally verified microkernel with fine-grained access control and support for virtual machines. It is the world’s fastest microkernel, balancing both security and performance. How this balance is achieved is a feat of software design and engineering.
 
-In this series I will be going over the mechanisms that allow safe, secure and high-performant systems to be built with seL4. I highly suggest everyone to check [the official white paper](https://sel4.systems/About/seL4-whitepaper.pdf) for a more deeper understanding on the project’s background, formal verification, objectives and real-world applications.
+In this series I will be going over the mechanisms that allow safe, secure and high-performant systems to be built with seL4. I highly suggest everyone to check [the official white paper](https://sel4.systems/About/seL4-whitepaper.pdf) for a deeper understanding on the project’s background, formal verification, objectives and real-world applications.
 
 ## Abstractions
 
@@ -33,7 +33,7 @@ seL4 acts as a hardware abstraction layer for the software running in the user s
 - Inter-process Communication
 - Interrupts
 
-Each abstraction and their mechanisms is quite impressive and deserve their own writing. So they will be explored in the next parts if this series.
+Each abstraction and its mechanism is quite impressive and deserves its own writing. So they will be explored in the next parts of this series.
 
 ## System Calls
 
@@ -42,7 +42,7 @@ seL4 General System Calls
 
 Traditional monolithic kernels provide abstractions (services) through system calls. For instance, to create a folder in Linux, you invoke the mkdir system call with its unique syscall number `83`.
 
-In that traditional sense, seL4 only has 11 system calls that you can invoke with a syscall number. Logically though, there is only 3.
+In that traditional sense, seL4 only has 11 system calls that you can invoke with a syscall number. Logically, though, there are only 3.
 - `seL4_Send`
 - `seL4_Recv`
 - `seL4_Yield`
@@ -56,9 +56,9 @@ The `seL4_Yield` system call here is a unique one because it doesn’t invoke an
 !["seL4 Kernel Objects"](./Media/Kernel_Objects.PNG)
 seL4 Kernel Objects
 
-Unlike mainstream kernels, seL4’s interface to its abstractions (services) are not thru system calls, but by kernel object invocations. This is a crucial design & implementation difference.
+Unlike mainstream kernels, the interface to seL4’s abstractions (services) are not through system calls, but by invocations to kernel objects. This is a crucial design & implementation difference.
 
-The kernel’s interface to these objects (via system calls `seL4_Send` and `seL4_Recv`) forms the kernel’s interface itself. Kernel abstractions (services) are created, manipulated, and interfaced using the following kernel objects:
+The seL4's interface to these objects (via system calls `seL4_Send` and `seL4_Recv`) forms the kernel’s interface itself. Kernel abstractions (services) are created, manipulated, and interfaced using the following kernel objects:
 - CNodes
 - Thread Control Blocks
 - Endpoints
@@ -80,7 +80,18 @@ seL4 Object Methods (a.k.a. Invocations)
 
 Kernel abstractions (services) are provided via invocations to kernel objects. This mechanism (or interface) is simply called object methods.
 
-The object methods, handled inside seL4, defines what you can do with a certain type of kernel object. Alongside them, capabilities are used for secure access control and object referencing.
+The object methods, handled by seL4, define what you can do with a certain type of kernel object. Each object method is accompanied by capabilities. They are used for object referencing and secure access control. The access rights associated with a capability determine the object methods that can be invoked. Again, this will be explored later.
+
+Below are some example object methods. Refer to [the offical seL4 API documentation](https://docs.sel4.systems/projects/sel4/api-doc.html) to see them all.
+- CNode (`seL4_CNode`)
+  - `seL4_CNode_Copy`
+  - `seL4_CNode_Delete`:
+- Thread Control Block (`seL4_TCBObject`)
+  - `seL4_TCB_ReadRegisters`
+  - `seL4_TCB_WriteRegisters`
+  - `seL4_TCB_Resume`
+- Untyped `seL4_Untyped`
+  - `seL4_Untyped_Retype`
 
 Each object method is actually either `seL4_Send` or `seL4_Recv` on a kernel object. For example, when you call the `seL4_TCB_Set_Priority` object method on a TCB type kernel object, you’re actually calling `seL4_Send` and `seL4_Recv` on it with a specific message (`MsgInfo_t`). In normal use, however, libsel4 abstracts this detail from you.
 
@@ -93,11 +104,11 @@ Relationship Between System Calls And Object Methods
 ## Kernel Memory Allocation
 
 !["seL4 Object Retyping"](./Media/Object_Retyping.PNG)
-seL4 Object Retyping And Capability Deviation Tree (CDT)
+seL4 Object Retyping And Capability Derivation Tree (CDT)
 
 Unlike other mainstream kernels, seL4 does not use any dynamic memory allocation. Everything it needs is pre-allocated during boot (e.g., data, code, stack) and remains fixed. This helps with predictability and in turn stability of the kernel. It also eases the formal verification.
 
-However, the kernel must track the abstractions (services) it provides via the kernel objects. seL4 cleverly implements this functionality inside the Capability Sevice Tree (CDT) thats structured using the kernel object themselves!
+However, the kernel must track the abstractions (services) it provides via the kernel objects. seL4 cleverly implements this functionality inside the Capability Derivation Tree (CDT) thats structured using the kernel object themselves!
 
 When the user space creates a kernel object via `seL4_Untyped_Retype`, seL4 adds additional information to the new kernel object and updates the CDT. The required book-tracking information of kernel objects are now stored within the kernel objects! And with it seL4 avoids dynamic memory allocation.
 
